@@ -16,7 +16,7 @@ class HealthUiApp extends StatefulWidget {
 
 class _HealthUiAppState extends State<HealthUiApp> {
   int step = 0;
-  UserProfile demoUser = const UserProfile();
+  UserProfile user = const UserProfile();
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'ANVIA',
@@ -31,33 +31,25 @@ class _HealthUiAppState extends State<HealthUiApp> {
     ],
     home: switch (step) {
       0 => WelcomeScreen(
-        onStart: () => setState(() => step = 2),
-        onSignIn: () => setState(() => step = 1),
+        onStart: () => setState(() => step = 4),
+        onConfigure: () => setState(() => step = 2),
       ),
-      1 => AccountScreen(
-        isRegistration: false,
+      2 => NameScreen(
         onBack: () => setState(() => step = 0),
-        onSwitch: () => setState(() => step = 2),
-        onContinue: (_) => setState(() => step = 4),
-      ),
-      2 => AccountScreen(
-        isRegistration: true,
-        onBack: () => setState(() => step = 0),
-        onSwitch: () => setState(() => step = 1),
         onContinue: (name) => setState(() {
-          demoUser = demoUser.copyWith(name: name);
+          user = user.copyWith(name: name);
           step = 3;
         }),
       ),
       3 => SetupScreen(
-        user: demoUser,
+        user: user,
         onBack: () => setState(() => step = 2),
-        onContinue: (user) => setState(() {
-          demoUser = user;
+        onContinue: (updatedUser) => setState(() {
+          user = updatedUser;
           step = 4;
         }),
       ),
-      _ => DemoShell(user: demoUser, onExit: () => setState(() => step = 0)),
+      _ => AppShell(user: user, onExit: () => setState(() => step = 0)),
     },
   );
 }
@@ -66,10 +58,10 @@ class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({
     super.key,
     required this.onStart,
-    required this.onSignIn,
+    required this.onConfigure,
   });
   final VoidCallback onStart;
-  final VoidCallback onSignIn;
+  final VoidCallback onConfigure;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -90,14 +82,8 @@ class WelcomeScreen extends StatelessWidget {
             const Spacer(),
             PrimaryButton(text: 'Начать', onPressed: onStart),
             TextButton(
-              onPressed: onSignIn,
-              child: const Text('У меня уже есть аккаунт'),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Демонстрация интерфейса без создания аккаунта',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: AppColors.muted),
+              onPressed: onConfigure,
+              child: const Text('Настроить профиль'),
             ),
           ],
         ),
@@ -106,33 +92,19 @@ class WelcomeScreen extends StatelessWidget {
   );
 }
 
-class AccountScreen extends StatefulWidget {
-  const AccountScreen({
-    super.key,
-    required this.isRegistration,
-    required this.onBack,
-    required this.onSwitch,
-    required this.onContinue,
-  });
-  final bool isRegistration;
+class NameScreen extends StatefulWidget {
+  const NameScreen({super.key, required this.onBack, required this.onContinue});
   final VoidCallback onBack;
-  final VoidCallback onSwitch;
   final ValueChanged<String> onContinue;
   @override
-  State<AccountScreen> createState() => _AccountScreenState();
+  State<NameScreen> createState() => _NameScreenState();
 }
 
-class _AccountScreenState extends State<AccountScreen> {
-  final formKey = GlobalKey<FormState>();
+class _NameScreenState extends State<NameScreen> {
   final name = TextEditingController(text: 'Александр');
-  final email = TextEditingController();
-  final password = TextEditingController();
-  bool visible = false;
   @override
   void dispose() {
     name.dispose();
-    email.dispose();
-    password.dispose();
     super.dispose();
   }
 
@@ -152,83 +124,34 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            widget.isRegistration ? 'Создать аккаунт' : 'Войти',
+            'Как к вам обращаться?',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 8),
           const Text(
-            'Демонстрационный режим: данные не отправляются и не сохраняются.',
+            'Имя можно изменить. Если всё подходит, просто продолжайте.',
             style: TextStyle(color: AppColors.muted),
           ),
           const SizedBox(height: 24),
           WhiteCard(
-            child: Form(
-              key: formKey,
-              child: Column(
-                children: [
-                  if (widget.isRegistration) ...[
-                    TextFormField(
-                      controller: name,
-                      decoration: const InputDecoration(labelText: 'Ваше имя'),
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty
-                          ? 'Введите имя'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  TextFormField(
-                    controller: email,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Электронная почта',
-                    ),
-                    validator: (value) => value == null || !value.contains('@')
-                        ? 'Введите адрес электронной почты'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: password,
-                    obscureText: !visible,
-                    decoration: InputDecoration(
-                      labelText: 'Пароль',
-                      suffixIcon: IconButton(
-                        tooltip: visible ? 'Скрыть пароль' : 'Показать пароль',
-                        onPressed: () => setState(() => visible = !visible),
-                        icon: Icon(
-                          visible
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                      ),
-                    ),
-                    validator: (value) => value == null || value.length < 6
-                        ? 'Не менее 6 символов'
-                        : null,
-                  ),
-                  const SizedBox(height: 20),
-                  PrimaryButton(
-                    text: widget.isRegistration
-                        ? 'Продолжить к настройке'
-                        : 'Открыть демо',
-                    onPressed: () {
-                      if (formKey.currentState!.validate()) {
-                        widget.onContinue(name.text.trim());
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: widget.onSwitch,
-            child: Text(
-              widget.isRegistration
-                  ? 'Уже есть аккаунт? Войти'
-                  : 'Нет аккаунта? Создать',
+            child: Column(
+              children: [
+                TextField(
+                  controller: name,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Ваше имя'),
+                ),
+                const SizedBox(height: 20),
+                PrimaryButton(
+                  text: 'Продолжить',
+                  onPressed: () {
+                    final enteredName = name.text.trim();
+                    widget.onContinue(
+                      enteredName.isEmpty ? 'Александр' : enteredName,
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ],
@@ -296,10 +219,6 @@ class _SetupScreenState extends State<SetupScreen> {
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Эти параметры действуют только во время демонстрации.',
-            style: TextStyle(color: AppColors.muted),
-          ),
           const SizedBox(height: 20),
           WhiteCard(
             child: Form(
@@ -330,7 +249,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     validator: (value) {
                       final years = int.tryParse(value ?? '');
                       return years == null || years < 18 || years > 120
-                          ? 'Для демо укажите возраст от 18 до 120 лет'
+                          ? 'Укажите возраст от 18 до 120 лет'
                           : null;
                     },
                   ),
@@ -425,15 +344,15 @@ class _SetupScreenState extends State<SetupScreen> {
   );
 }
 
-class DemoShell extends StatefulWidget {
-  const DemoShell({super.key, required this.onExit, required this.user});
+class AppShell extends StatefulWidget {
+  const AppShell({super.key, required this.onExit, required this.user});
   final VoidCallback onExit;
   final UserProfile user;
   @override
-  State<DemoShell> createState() => _DemoShellState();
+  State<AppShell> createState() => _AppShellState();
 }
 
-class _DemoShellState extends State<DemoShell> {
+class _AppShellState extends State<AppShell> {
   int tab = 0;
   DateTime date = DateTime.now();
   UserProfile get user => widget.user;
@@ -535,7 +454,7 @@ class _DemoShellState extends State<DemoShell> {
           date: date,
           onAddFood: () => setState(() => tab = 1),
         ),
-        DiaryDemo(
+        DiaryScreen(
           entries: entries
               .where((entry) => DateUtils.isSameDay(entry.date, date))
               .toList(),
@@ -543,8 +462,8 @@ class _DemoShellState extends State<DemoShell> {
           date: date,
           onDateSelected: (value) => setState(() => date = value),
         ),
-        AnalyticsDemo(user: user),
-        ProfileDemo(user: user, onExit: widget.onExit),
+        AnalyticsScreen(user: user),
+        ProfileScreen(user: user, onExit: widget.onExit),
       ],
     ),
     bottomNavigationBar: NavigationBar(
@@ -574,8 +493,8 @@ class _DemoShellState extends State<DemoShell> {
   );
 }
 
-class DiaryDemo extends StatefulWidget {
-  const DiaryDemo({
+class DiaryScreen extends StatefulWidget {
+  const DiaryScreen({
     super.key,
     required this.entries,
     required this.date,
@@ -587,10 +506,10 @@ class DiaryDemo extends StatefulWidget {
   final DateTime date;
   final ValueChanged<DateTime> onDateSelected;
   @override
-  State<DiaryDemo> createState() => _DiaryDemoState();
+  State<DiaryScreen> createState() => _DiaryScreenState();
 }
 
-class _DiaryDemoState extends State<DiaryDemo> {
+class _DiaryScreenState extends State<DiaryScreen> {
   String query = '';
   final expanded = <String>{'Завтрак', 'Обед'};
   @override
@@ -666,7 +585,7 @@ class _DiaryDemoState extends State<DiaryDemo> {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
                   tooltip: 'Сканировать штрихкод',
-                  onPressed: () => demoMessage(context),
+                  onPressed: () => unavailableMessage(context),
                   icon: const Icon(Icons.qr_code_scanner),
                 ),
               ),
@@ -684,7 +603,7 @@ class _DiaryDemoState extends State<DiaryDemo> {
                     'У ${product.carbs.toStringAsFixed(0)} г на 100 г',
                   ),
                   trailing: const Icon(Icons.add_circle_outline),
-                  onTap: () => demoMessage(context),
+                  onTap: () => unavailableMessage(context),
                 ),
             if (query.isNotEmpty &&
                 !widget.catalog.any(
@@ -694,7 +613,7 @@ class _DiaryDemoState extends State<DiaryDemo> {
               const Padding(
                 padding: EdgeInsets.only(top: 16),
                 child: Text(
-                  'В демонстрационном каталоге ничего не найдено.',
+                  'Ничего не найдено.',
                   style: TextStyle(color: AppColors.muted),
                 ),
               ),
@@ -747,7 +666,7 @@ class _DiaryDemoState extends State<DiaryDemo> {
                     trailing: Text('${entry.kcal.toStringAsFixed(0)} ккал'),
                   ),
                 TextButton.icon(
-                  onPressed: () => demoMessage(context),
+                  onPressed: () => unavailableMessage(context),
                   icon: const Icon(Icons.add),
                   label: const Text('Добавить продукт'),
                 ),
@@ -761,14 +680,14 @@ class _DiaryDemoState extends State<DiaryDemo> {
   );
 }
 
-class AnalyticsDemo extends StatefulWidget {
-  const AnalyticsDemo({super.key, required this.user});
+class AnalyticsScreen extends StatefulWidget {
+  const AnalyticsScreen({super.key, required this.user});
   final UserProfile user;
   @override
-  State<AnalyticsDemo> createState() => _AnalyticsDemoState();
+  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-class _AnalyticsDemoState extends State<AnalyticsDemo> {
+class _AnalyticsScreenState extends State<AnalyticsScreen> {
   int period = 1;
   @override
   Widget build(BuildContext context) {
@@ -864,7 +783,7 @@ class _AnalyticsDemoState extends State<AnalyticsDemo> {
         const SizedBox(height: 14),
         PrimaryButton(
           text: 'Отчёт о показателях здоровья',
-          onPressed: () => demoMessage(context),
+          onPressed: () => unavailableMessage(context),
         ),
       ],
     );
@@ -906,15 +825,15 @@ class WeightLinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class ProfileDemo extends StatefulWidget {
-  const ProfileDemo({super.key, required this.user, required this.onExit});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key, required this.user, required this.onExit});
   final UserProfile user;
   final VoidCallback onExit;
   @override
-  State<ProfileDemo> createState() => _ProfileDemoState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileDemoState extends State<ProfileDemo> {
+class _ProfileScreenState extends State<ProfileScreen> {
   bool health = false;
   bool notifications = true;
   @override
@@ -1047,7 +966,7 @@ class MetricCard extends StatelessWidget {
   );
 }
 
-void demoMessage(BuildContext context) => ScaffoldMessenger.of(context)
+void unavailableMessage(BuildContext context) => ScaffoldMessenger.of(context)
     .showSnackBar(
       const SnackBar(
         content: Text('Эта функция появится на следующем этапе проекта'),
