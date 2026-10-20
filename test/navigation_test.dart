@@ -9,17 +9,31 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const HealthUiApp());
-    expect(find.text('Начните заботиться о себе'), findsOneWidget);
-    await tester.ensureVisible(find.text('Продолжить').first);
+    expect(find.text('ANVIA'), findsOneWidget);
+    await tester.tap(find.text('Начать'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Продолжить').first);
+    expect(find.text('Создать аккаунт'), findsOneWidget);
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'demo@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(2), 'password123');
+    await tester.ensureVisible(find.text('Продолжить к настройке'));
+    await tester.tap(find.text('Продолжить к настройке'));
+    await tester.pumpAndSettle();
+    expect(find.text('Настройка профиля'), findsOneWidget);
+    await tester.ensureVisible(find.text('Открыть главную'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Открыть главную'));
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
     for (final index in [1, 2, 3, 0]) {
       await tester.tap(find.byType(NavigationDestination).at(index));
       await tester.pumpAndSettle();
-      expect(find.text(['Главная', 'Дневник', 'Аналитика', 'Профиль'][index]),
-          findsWidgets);
+      expect(
+        find.text(['Главная', 'Дневник', 'Аналитика', 'Профиль'][index]),
+        findsWidgets,
+      );
     }
   });
 }
