@@ -17,6 +17,7 @@ class UserProfile {
     this.targetKg = 71,
     this.goal = Goal.lose,
     this.calorieTarget = 2200,
+    this.activityLevel = 'Умеренная',
   });
   final String name;
   final String email;
@@ -25,6 +26,7 @@ class UserProfile {
   final double targetKg;
   final Goal goal;
   final int calorieTarget;
+  final String activityLevel;
 
   UserProfile copyWith({
     String? name,
@@ -34,6 +36,7 @@ class UserProfile {
     double? targetKg,
     Goal? goal,
     int? calorieTarget,
+    String? activityLevel,
   }) => UserProfile(
     name: name ?? this.name,
     email: email ?? this.email,
@@ -42,6 +45,7 @@ class UserProfile {
     targetKg: targetKg ?? this.targetKg,
     goal: goal ?? this.goal,
     calorieTarget: calorieTarget ?? this.calorieTarget,
+    activityLevel: activityLevel ?? this.activityLevel,
   );
 }
 

@@ -55,7 +55,7 @@ void main() {
     expect(find.textContaining('выберите тип приёма пищи'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('Мой профиль'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Выйти из аккаунта'),
       200,
@@ -81,5 +81,53 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Войти'));
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('Профиль показывает выбранную активность и обновлённый вес', (
+    tester,
+  ) async {
+    phoneSize(tester);
+    await tester.pumpWidget(const HealthUiApp());
+    await tester.tap(find.text('Начать'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Продолжить к настройке'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Высокая'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Высокая')),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Высокая'));
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Открыть главную')),
+      alignment: 0.8,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Открыть главную'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NavigationDestination).at(3));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Высокая'), findsOneWidget);
+    expect(find.text('5–6 тренировок в неделю'), findsOneWidget);
+    expect(find.text('Идеально для категории'), findsNothing);
+    expect(find.text('Взвешивание сегодня'), findsNothing);
+    await tester.tap(find.text('Редактировать профиль'));
+    await tester.pumpAndSettle();
+    expect(find.text('Уровень активности'), findsNothing);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Текущий вес, кг'),
+      '72,0',
+    );
+    await tester.ensureVisible(find.text('Сохранить'));
+    await tester.tap(find.text('Сохранить'));
+    await tester.pumpAndSettle();
+    expect(find.text('72.0 кг'), findsOneWidget);
+    expect(find.text('Высокая'), findsOneWidget);
   });
 }

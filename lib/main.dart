@@ -59,7 +59,11 @@ class _HealthUiAppState extends State<HealthUiApp> {
           step = 4;
         }),
       ),
-      _ => AppShell(user: profile, onExit: () => setState(() => step = 0)),
+      _ => AppShell(
+        user: profile,
+        onProfileChanged: (user) => setState(() => profile = user),
+        onExit: () => setState(() => step = 0),
+      ),
     },
   );
 }
@@ -253,7 +257,7 @@ class _SetupScreenState extends State<SetupScreen> {
   );
   Goal goal = Goal.lose;
   String sex = 'Мужской';
-  String activityLevel = 'Умеренная';
+  late String activityLevel = widget.user.activityLevel;
   @override
   void dispose() {
     age.dispose();
@@ -436,6 +440,7 @@ class _SetupScreenState extends State<SetupScreen> {
                             weightKg: number(weight),
                             targetKg: number(target),
                             goal: goal,
+                            activityLevel: activityLevel,
                           ),
                         );
                       }
@@ -452,9 +457,15 @@ class _SetupScreenState extends State<SetupScreen> {
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.onExit, required this.user});
+  const AppShell({
+    super.key,
+    required this.onExit,
+    required this.user,
+    required this.onProfileChanged,
+  });
   final VoidCallback onExit;
   final UserProfile user;
+  final ValueChanged<UserProfile> onProfileChanged;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -586,7 +597,11 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
         AnalyticsScreen(user: user),
-        ProfileScreen(user: user, onExit: widget.onExit),
+        ProfileScreen(
+          user: user,
+          onExit: widget.onExit,
+          onProfileChanged: widget.onProfileChanged,
+        ),
       ],
     ),
     bottomNavigationBar: NavigationBar(
@@ -788,9 +803,15 @@ class WeightLinePainter extends CustomPainter {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, required this.user, required this.onExit});
+  const ProfileScreen({
+    super.key,
+    required this.user,
+    required this.onExit,
+    required this.onProfileChanged,
+  });
   final UserProfile user;
   final VoidCallback onExit;
+  final ValueChanged<UserProfile> onProfileChanged;
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -798,143 +819,386 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool health = false;
   bool notifications = true;
+  Future<void> editProfile() async {
+    final updated = await showModalBottomSheet<UserProfile>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => EditProfileSheet(user: widget.user),
+    );
+    if (updated != null) widget.onProfileChanged(updated);
+  }
+
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-    children: [
-      Text('Мой профиль', style: Theme.of(context).textTheme.headlineMedium),
-      const SizedBox(height: 16),
-      WhiteCard(
-        child: Row(
+  Widget build(BuildContext context) {
+    final bmi = HealthCalculations.bmi(
+      widget.user.weightKg,
+      widget.user.heightCm,
+    );
+    final remaining = (widget.user.weightKg - widget.user.targetKg).abs();
+    final targetNote = remaining < 0.05
+        ? 'Цель достигнута'
+        : 'Осталось ${remaining.toStringAsFixed(1)} кг';
+    final activityDescription = switch (widget.user.activityLevel) {
+      'Минимальная' => 'Почти без тренировок',
+      'Лёгкая' => '1–2 тренировки в неделю',
+      'Умеренная' => '3–4 тренировки в неделю',
+      'Высокая' => '5–6 тренировок в неделю',
+      'Очень высокая' => 'Активность каждый день',
+      _ => '',
+    };
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+      children: [
+        Text('Мой профиль', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 16),
+        WhiteCard(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 29,
+                    backgroundColor: AppColors.mint,
+                    child: Icon(
+                      Icons.person_outline,
+                      size: 32,
+                      color: AppColors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.user.name,
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const Text(
+                          'ANVIA · Твой путь к здоровью',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: editProfile,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Редактировать профиль'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.pale,
+                    foregroundColor: AppColors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '✧ ИМТ ${bmi.toStringAsFixed(1)} · ${HealthCalculations.bmiStatus(bmi)}',
+            style: const TextStyle(
+              color: AppColors.green,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
           children: [
-            const CircleAvatar(
-              radius: 29,
-              backgroundColor: AppColors.mint,
-              child: Icon(
-                Icons.person_outline,
-                size: 32,
-                color: AppColors.green,
+            Expanded(
+              child: MetricCard(
+                'Рост',
+                '${widget.user.heightCm.toStringAsFixed(0)} см',
+                icon: Icons.height,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.user.name,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const Text(
-                    'ANVIA · Твой путь к здоровью',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: AppColors.muted),
-                  ),
-                ],
+              child: MetricCard(
+                'Текущий вес',
+                '${widget.user.weightKg.toStringAsFixed(1)} кг',
+                icon: Icons.monitor_weight_outlined,
               ),
             ),
           ],
         ),
-      ),
-      const SizedBox(height: 14),
-      Row(
-        children: [
-          Expanded(
-            child: MetricCard(
-              'Рост',
-              '${widget.user.heightCm.toStringAsFixed(0)} см',
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: MetricCard(
-              'Вес',
-              '${widget.user.weightKg.toStringAsFixed(1)} кг',
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: MetricCard(
-              'Цель',
-              '${widget.user.targetKg.toStringAsFixed(0)} кг',
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 14),
-      WhiteCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 12),
+        Row(
           children: [
-            const Text(
-              'Моя программа',
-              style: TextStyle(fontWeight: FontWeight.w700),
+            Expanded(
+              child: MetricCard(
+                'Желаемый вес',
+                '${widget.user.targetKg.toStringAsFixed(1)} кг',
+                icon: Icons.flag_outlined,
+                note: targetNote,
+                noteColor: AppColors.orange,
+              ),
             ),
-            const SizedBox(height: 8),
-            Chip(label: Text(widget.user.goal.title)),
-            Text('${widget.user.calorieTarget} ккал в день · пример нормы'),
-          ],
-        ),
-      ),
-      const SizedBox(height: 14),
-      WhiteCard(
-        child: Column(
-          children: [
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Показатели здоровья'),
-              subtitle: const Text('Шаги, пульс и сон из приложений телефона'),
-              value: health,
-              onChanged: (value) => setState(() => health = value),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Уведомления'),
-              value: notifications,
-              onChanged: (value) => setState(() => notifications = value),
+            const SizedBox(width: 12),
+            Expanded(
+              child: MetricCard(
+                'Активность',
+                widget.user.activityLevel,
+                icon: Icons.directions_run,
+                note: activityDescription,
+              ),
             ),
           ],
         ),
-      ),
-      const SizedBox(height: 14),
-      OutlinedButton.icon(
-        onPressed: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute<void>(builder: (_) => const HelpScreen()));
-        },
-        icon: const Icon(Icons.help_outline),
-        label: const Text('Помощь и вопросы'),
-      ),
-      const SizedBox(height: 8),
-      OutlinedButton.icon(
-        onPressed: widget.onExit,
-        icon: const Icon(Icons.logout),
-        label: const Text('Выйти из аккаунта'),
-      ),
-    ],
-  );
+        const SizedBox(height: 14),
+        WhiteCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Моя программа',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Chip(label: Text(widget.user.goal.title)),
+              Text('${widget.user.calorieTarget} ккал в день · пример нормы'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        WhiteCard(
+          child: Column(
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Показатели здоровья'),
+                subtitle: const Text(
+                  'Шаги, пульс и сон из приложений телефона',
+                ),
+                value: health,
+                onChanged: (value) => setState(() => health = value),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Уведомления'),
+                value: notifications,
+                onChanged: (value) => setState(() => notifications = value),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        OutlinedButton.icon(
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const HelpScreen()));
+          },
+          icon: const Icon(Icons.help_outline),
+          label: const Text('Помощь и вопросы'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: widget.onExit,
+          icon: const Icon(Icons.logout),
+          label: const Text('Выйти из аккаунта'),
+        ),
+      ],
+    );
+  }
 }
 
 class MetricCard extends StatelessWidget {
-  const MetricCard(this.title, this.value, {super.key});
+  const MetricCard(
+    this.title,
+    this.value, {
+    super.key,
+    required this.icon,
+    this.note,
+    this.noteColor = AppColors.muted,
+  });
   final String title;
   final String value;
+  final IconData icon;
+  final String? note;
+  final Color noteColor;
   @override
   Widget build(BuildContext context) => WhiteCard(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-    child: Column(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+    padding: const EdgeInsets.all(16),
+    child: SizedBox(
+      height: 140,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontSize: 15, color: AppColors.ink),
+                ),
+              ),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.pale,
+                child: Icon(icon, color: AppColors.green, size: 19),
+              ),
+            ],
+          ),
+          const Spacer(),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (note != null)
+            Text(
+              note!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: noteColor),
+            )
+          else
+            const SizedBox(height: 28),
+        ],
+      ),
+    ),
+  );
+}
+
+class EditProfileSheet extends StatefulWidget {
+  const EditProfileSheet({super.key, required this.user});
+
+  final UserProfile user;
+
+  @override
+  State<EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<EditProfileSheet> {
+  final formKey = GlobalKey<FormState>();
+  late final name = TextEditingController(text: widget.user.name);
+  late final height = TextEditingController(
+    text: widget.user.heightCm.toStringAsFixed(0),
+  );
+  late final weight = TextEditingController(
+    text: widget.user.weightKg.toStringAsFixed(1),
+  );
+  late final target = TextEditingController(
+    text: widget.user.targetKg.toStringAsFixed(1),
+  );
+
+  @override
+  void dispose() {
+    name.dispose();
+    height.dispose();
+    weight.dispose();
+    target.dispose();
+    super.dispose();
+  }
+
+  String? validateNumber(String? value) {
+    final number = double.tryParse((value ?? '').replaceAll(',', '.'));
+    return number == null || number <= 0 || number > 300
+        ? 'Введите число от 1 до 300'
+        : null;
+  }
+
+  double number(TextEditingController controller) =>
+      double.parse(controller.text.replaceAll(',', '.'));
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      24,
+      8,
+      24,
+      MediaQuery.viewInsetsOf(context).bottom + 24,
+    ),
+    child: SingleChildScrollView(
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Редактировать профиль',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Имя'),
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'Введите имя' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: height,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Рост, см'),
+              validator: validateNumber,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: weight,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Текущий вес, кг'),
+              validator: validateNumber,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: target,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Желаемый вес, кг'),
+              validator: validateNumber,
+            ),
+            const SizedBox(height: 20),
+            PrimaryButton(
+              text: 'Сохранить',
+              onPressed: () {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.of(context).pop(
+                  widget.user.copyWith(
+                    name: name.text.trim(),
+                    heightCm: number(height),
+                    weightKg: number(weight),
+                    targetKg: number(target),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
-        const SizedBox(height: 5),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
-      ],
+      ),
     ),
   );
 }
