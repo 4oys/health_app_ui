@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/theme.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
+import 'features/diary/presentation/diary_screen.dart';
 import 'features/health/domain/calculations.dart';
 import 'features/health/domain/models.dart';
 
@@ -358,29 +359,71 @@ class _SetupScreenState extends State<SetupScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: activityLevel,
-                    decoration: const InputDecoration(
-                      labelText: 'Уровень активности',
-                    ),
-                    items:
-                        [
-                              'Минимальная',
-                              'Лёгкая',
-                              'Умеренная',
-                              'Высокая',
-                              'Очень высокая',
-                            ]
-                            .map(
-                              (value) => DropdownMenuItem(
-                                value: value,
-                                child: Text(value),
-                              ),
-                            )
-                            .toList(),
-                    onChanged: (value) =>
-                        setState(() => activityLevel = value ?? activityLevel),
+                  const Text(
+                    'Уровень активности',
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
+                  const SizedBox(height: 8),
+                  for (final option in const [
+                    (
+                      'Минимальная',
+                      'Сидячая работа, почти нет прогулок и тренировок.',
+                    ),
+                    (
+                      'Лёгкая',
+                      'Прогулки или лёгкие тренировки 1–2 раза в неделю.',
+                    ),
+                    (
+                      'Умеренная',
+                      'Тренировки или активные прогулки 3–4 раза в неделю.',
+                    ),
+                    ('Высокая', 'Интенсивные тренировки 5–6 раз в неделю.'),
+                    (
+                      'Очень высокая',
+                      'Физическая работа или тяжёлые тренировки каждый день.',
+                    ),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => setState(() => activityLevel = option.$1),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                activityLevel == option.$1
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_unchecked,
+                                color: AppColors.green,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      option.$1,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    Text(
+                                      option.$2,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.muted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 20),
                   PrimaryButton(
                     text: 'Открыть главную',
@@ -418,6 +461,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int tab = 0;
   DateTime date = DateTime.now();
+  final waterByDay = <DateTime, int>{};
   UserProfile get user => widget.user;
   late final entries = [
     FoodEntry(
@@ -515,7 +559,15 @@ class _AppShellState extends State<AppShell> {
               .toList(),
           activity: activity,
           date: date,
-          onAddFood: () => setState(() => tab = 1),
+          waterMl: waterByDay[DateUtils.dateOnly(date)] ?? 0,
+          onAddWater: (amount) => setState(() {
+            final day = DateUtils.dateOnly(date);
+            waterByDay[day] = (waterByDay[day] ?? 0) + amount;
+          }),
+          onUndoWater: () => setState(() {
+            final day = DateUtils.dateOnly(date);
+            waterByDay[day] = ((waterByDay[day] ?? 0) - 250).clamp(0, 100000);
+          }),
         ),
         DiaryScreen(
           entries: entries
@@ -524,6 +576,7 @@ class _AppShellState extends State<AppShell> {
           catalog: entries.map((entry) => entry.product).toList(),
           date: date,
           onDateSelected: (value) => setState(() => date = value),
+          onAddEntry: (entry) => setState(() => entries.add(entry)),
         ),
         AnalyticsScreen(user: user),
         ProfileScreen(user: user, onExit: widget.onExit),
@@ -553,193 +606,6 @@ class _AppShellState extends State<AppShell> {
         ),
       ],
     ),
-  );
-}
-
-class DiaryScreen extends StatefulWidget {
-  const DiaryScreen({
-    super.key,
-    required this.entries,
-    required this.date,
-    required this.catalog,
-    required this.onDateSelected,
-  });
-  final List<FoodEntry> entries;
-  final List<Product> catalog;
-  final DateTime date;
-  final ValueChanged<DateTime> onDateSelected;
-  @override
-  State<DiaryScreen> createState() => _DiaryScreenState();
-}
-
-class _DiaryScreenState extends State<DiaryScreen> {
-  String query = '';
-  final expanded = <String>{'Завтрак', 'Обед'};
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-    children: [
-      Text(
-        'Дневник питания',
-        style: Theme.of(context).textTheme.headlineMedium,
-      ),
-      const SizedBox(height: 5),
-      const Text(
-        'Рацион за выбранный день',
-        style: TextStyle(color: AppColors.muted),
-      ),
-      const SizedBox(height: 16),
-      SizedBox(
-        height: 66,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          children: [
-            for (var offset = -3; offset <= 3; offset++)
-              InkWell(
-                onTap: () => widget.onDateSelected(
-                  widget.date.add(Duration(days: offset)),
-                ),
-                child: Container(
-                  width: 48,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: offset == 0 ? AppColors.green : Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        [
-                          'Пн',
-                          'Вт',
-                          'Ср',
-                          'Чт',
-                          'Пт',
-                          'Сб',
-                          'Вс',
-                        ][widget.date.add(Duration(days: offset)).weekday - 1],
-                        style: TextStyle(
-                          color: offset == 0 ? Colors.white : AppColors.muted,
-                        ),
-                      ),
-                      Text(
-                        '${widget.date.add(Duration(days: offset)).day}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: offset == 0 ? Colors.white : AppColors.ink,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 16),
-      WhiteCard(
-        child: Column(
-          children: [
-            TextField(
-              onChanged: (value) => setState(() => query = value),
-              decoration: InputDecoration(
-                hintText: 'Поиск продукта',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  tooltip: 'Сканировать штрихкод',
-                  onPressed: () => unavailableMessage(context),
-                  icon: const Icon(Icons.qr_code_scanner),
-                ),
-              ),
-            ),
-            if (query.isNotEmpty)
-              for (final product in widget.catalog.where(
-                (item) => item.name.toLowerCase().contains(query.toLowerCase()),
-              ))
-                ListTile(
-                  title: Text(product.name),
-                  subtitle: Text(
-                    '${product.kcal.toStringAsFixed(0)} ккал · '
-                    'Б ${product.protein.toStringAsFixed(0)} / '
-                    'Ж ${product.fat.toStringAsFixed(0)} / '
-                    'У ${product.carbs.toStringAsFixed(0)} г на 100 г',
-                  ),
-                  trailing: const Icon(Icons.add_circle_outline),
-                  onTap: () => unavailableMessage(context),
-                ),
-            if (query.isNotEmpty &&
-                !widget.catalog.any(
-                  (product) =>
-                      product.name.toLowerCase().contains(query.toLowerCase()),
-                ))
-              const Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: Text(
-                  'Ничего не найдено.',
-                  style: TextStyle(color: AppColors.muted),
-                ),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 14),
-      for (final meal in ['Завтрак', 'Обед', 'Ужин', 'Перекус']) ...[
-        WhiteCard(
-          child: Column(
-            children: [
-              InkWell(
-                onTap: () => setState(
-                  () => expanded.contains(meal)
-                      ? expanded.remove(meal)
-                      : expanded.add(meal),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        meal,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      expanded.contains(meal)
-                          ? Icons.expand_less
-                          : Icons.expand_more,
-                    ),
-                  ],
-                ),
-              ),
-              if (expanded.contains(meal)) ...[
-                for (final entry in widget.entries.where(
-                  (item) => item.meal == meal,
-                ))
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(entry.product.name),
-                    subtitle: Text(
-                      '${entry.grams.toStringAsFixed(0)} г · '
-                      'Б ${entry.protein.toStringAsFixed(0)} / '
-                      'Ж ${entry.fat.toStringAsFixed(0)} / '
-                      'У ${entry.carbs.toStringAsFixed(0)} г',
-                    ),
-                    trailing: Text('${entry.kcal.toStringAsFixed(0)} ккал'),
-                  ),
-                TextButton.icon(
-                  onPressed: () => unavailableMessage(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Добавить продукт'),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-      ],
-    ],
   );
 }
 
@@ -845,8 +711,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
         const SizedBox(height: 14),
         PrimaryButton(
-          text: 'Отчёт о показателях здоровья',
-          onPressed: () => unavailableMessage(context),
+          text: 'Посмотреть сводку здоровья',
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Сводка здоровья'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ИМТ: ${bmi.toStringAsFixed(1)} — ${HealthCalculations.bmiStatus(bmi)}',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Текущий вес: ${widget.user.weightKg.toStringAsFixed(1)} кг',
+                  ),
+                  Text('Цель: ${widget.user.targetKg.toStringAsFixed(1)} кг'),
+                  Text('Дневная норма: ${widget.user.calorieTarget} ккал'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Закрыть'),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -1028,10 +920,3 @@ class MetricCard extends StatelessWidget {
     ),
   );
 }
-
-void unavailableMessage(BuildContext context) => ScaffoldMessenger.of(context)
-    .showSnackBar(
-      const SnackBar(
-        content: Text('Эта функция появится на следующем этапе проекта'),
-      ),
-    );

@@ -11,7 +11,9 @@ class DashboardScreen extends StatelessWidget {
     required this.entries,
     required this.activity,
     required this.date,
-    required this.onAddFood,
+    required this.waterMl,
+    required this.onAddWater,
+    required this.onUndoWater,
     this.healthConnected = false,
     this.healthSyncEnabled = false,
   });
@@ -21,7 +23,9 @@ class DashboardScreen extends StatelessWidget {
   final bool healthConnected;
   final bool healthSyncEnabled;
   final DateTime date;
-  final VoidCallback onAddFood;
+  final int waterMl;
+  final ValueChanged<int> onAddWater;
+  final VoidCallback onUndoWater;
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +35,6 @@ class DashboardScreen extends StatelessWidget {
       entries,
     );
     final macroScale = user.calorieTarget / 2200;
-    final isToday = DateUtils.isSameDay(date, DateTime.now());
-    final meals = [
-      'Завтрак',
-      'Обед',
-      'Ужин',
-      'Перекус',
-    ].where((meal) => entries.any((entry) => entry.meal == meal));
     final weekday = [
       'ПОНЕДЕЛЬНИК',
       'ВТОРНИК',
@@ -284,88 +281,66 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                isToday ? 'Приёмы пищи сегодня' : 'Приёмы пищи за день',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            TextButton(onPressed: onAddFood, child: const Text('Все >')),
-          ],
-        ),
-        if (meals.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: WhiteCard(
-              padding: EdgeInsets.all(16),
-              child: Text('Пока нет записей питания за этот день.'),
-            ),
-          ),
-        for (final meal in meals)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: WhiteCard(
-              padding: const EdgeInsets.all(13),
-              child: Row(
+        WhiteCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: meal == 'Завтрак'
-                        ? const Color(0xFFFFF3E6)
-                        : const Color(0xFFE5F1FF),
-                    child: Icon(
-                      meal == 'Завтрак'
-                          ? Icons.wb_twilight
-                          : Icons.wb_sunny_outlined,
-                      color: meal == 'Завтрак'
-                          ? AppColors.orange
-                          : AppColors.blue,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
+                  const Icon(Icons.water_drop_outlined, color: AppColors.blue),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          meal,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          entries
-                              .where((e) => e.meal == meal)
-                              .map((e) => e.product.name)
-                              .join(', '),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${entries.where((e) => e.meal == meal).fold<double>(0, (s, e) => s + e.kcal).round()} ккал',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                    child: Text(
+                      'Вода за день',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 12),
+              Text(
+                '$waterMl / 2000 мл',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: (waterMl / 2000).clamp(0.0, 1.0),
+                minHeight: 9,
+                color: AppColors.blue,
+                backgroundColor: AppColors.pale,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Цель на день: 2 л',
+                style: TextStyle(fontSize: 12, color: AppColors.muted),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => onAddWater(250),
+                    child: const Text('+ 250 мл'),
+                  ),
+                  OutlinedButton(
+                    onPressed: () => onAddWater(500),
+                    child: const Text('+ 500 мл'),
+                  ),
+                  if (waterMl > 0)
+                    IconButton(
+                      onPressed: onUndoWater,
+                      tooltip: 'Убрать 250 мл',
+                      icon: const Icon(Icons.undo),
+                    ),
+                ],
+              ),
+            ],
           ),
-        const SizedBox(height: 14),
-        PrimaryButton(
-          text: 'Добавить приём пищи',
-          icon: Icons.add_circle_outline,
-          onPressed: onAddFood,
         ),
       ],
     );
