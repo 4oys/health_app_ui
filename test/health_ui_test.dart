@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:health_app_ui/features/diary/presentation/diary_screen.dart';
 import 'package:health_app_ui/main.dart';
 
 void main() {
-  Future<void> openApp(WidgetTester tester) async {
+  void phoneSize(WidgetTester tester) {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  Future<void> openApp(WidgetTester tester) async {
+    phoneSize(tester);
     await tester.pumpWidget(const HealthUiApp());
     await tester.tap(find.text('У меня уже есть аккаунт'));
     await tester.pumpAndSettle();
@@ -33,30 +38,80 @@ void main() {
     expect(find.text('500 / 2000 мл'), findsOneWidget);
   });
 
-  testWidgets('Новая еда сохраняется в дневнике', (tester) async {
+  testWidgets('Новый день не содержит пустых приёмов пищи', (tester) async {
+    phoneSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DiaryScreen(
+            entries: const [],
+            catalog: const [],
+            date: DateTime(2026, 10, 27),
+            onDateSelected: (_) {},
+            onAddEntry: (_) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Завтрак'), findsNothing);
+    expect(find.text('Обед'), findsNothing);
+    expect(find.text('Ужин'), findsNothing);
+    expect(find.text('Перекус'), findsNothing);
+    expect(find.text('Добавить приём пищи'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Добавить приём пищи')).dy,
+      greaterThan(600),
+    );
+  });
+
+  testWidgets('Запись добавляется после выбора продукта и веса', (
+    tester,
+  ) async {
+    await openApp(tester);
+    await tester.tap(find.byType(NavigationDestination).at(1));
+    await tester.pumpAndSettle();
+    expect(find.text('Завтрак'), findsOneWidget);
+    expect(find.text('Обед'), findsOneWidget);
+    expect(find.text('Ужин'), findsNothing);
+    expect(find.text('Перекус'), findsNothing);
+    await tester.tap(find.text('Добавить приём пищи'));
+    await tester.pumpAndSettle();
+    expect(find.text('Что вы ели?'), findsOneWidget);
+    expect(find.byTooltip('Найти по штрихкоду'), findsOneWidget);
+    expect(find.text('Сколько граммов?'), findsNothing);
+    await tester.tap(find.text('Своё название'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Своё название'),
+      'Поздний завтрак',
+    );
+    await tester.tap(find.text('Овсяная каша').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Сколько граммов?'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Сколько граммов?'),
+      '150',
+    );
+    await tester.ensureVisible(find.text('Сохранить'));
+    await tester.tap(find.text('Сохранить'));
+    await tester.pumpAndSettle();
+    expect(find.text('Поздний завтрак'), findsOneWidget);
+    await tester.tap(find.byType(NavigationDestination).at(0));
+    await tester.pumpAndSettle();
+    expect(find.text('745'), findsOneWidget);
+  });
+
+  testWidgets('Поиск по штрихкоду открывает поле ввода', (tester) async {
     await openApp(tester);
     await tester.tap(find.byType(NavigationDestination).at(1));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Добавить приём пищи'));
     await tester.pumpAndSettle();
-    expect(find.text('Название блюда или приёма пищи'), findsOneWidget);
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Название блюда или приёма пищи'),
-      'Яблоко',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Калории, ккал'),
-      '52',
-    );
-    await tester.ensureVisible(find.text('Сохранить'));
-    await tester.tap(find.text('Сохранить'));
+    await tester.tap(find.byTooltip('Найти по штрихкоду'));
     await tester.pumpAndSettle();
-    expect(find.text('Добавить приём пищи'), findsOneWidget);
-    await tester.ensureVisible(find.text('Яблоко'));
-    expect(find.text('Яблоко'), findsOneWidget);
-    await tester.tap(find.byType(NavigationDestination).at(0));
+    expect(find.text('Штрихкод продукта'), findsOneWidget);
+    await tester.tap(find.text('Отмена').last);
     await tester.pumpAndSettle();
-    expect(find.text('629'), findsOneWidget);
   });
 
   testWidgets('Просмотр сводки открывается без сообщения-заглушки', (

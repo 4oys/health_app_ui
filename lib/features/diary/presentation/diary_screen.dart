@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme.dart';
 import '../../health/domain/models.dart';
 
+const _mealKinds = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
+const _customMeal = 'Своё название';
+
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({
     super.key,
@@ -24,17 +27,19 @@ class DiaryScreen extends StatefulWidget {
 }
 
 class _DiaryScreenState extends State<DiaryScreen> {
-  String query = '';
   final expanded = <String>{'Завтрак', 'Обед'};
 
-  Future<void> openEntry({String meal = 'Завтрак', Product? product}) async {
+  Future<void> openEntry({String? meal}) async {
     final entry = await showModalBottomSheet<FoodEntry>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: AppColors.background,
-      builder: (_) =>
-          _AddMealSheet(date: widget.date, initialMeal: meal, product: product),
+      builder: (_) => _AddMealSheet(
+        date: widget.date,
+        initialMeal: meal,
+        catalog: widget.catalog,
+      ),
     );
     if (entry == null || !mounted) return;
     widget.onAddEntry(entry);
@@ -42,186 +47,160 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-    children: [
-      Text(
-        'Дневник питания',
-        style: Theme.of(context).textTheme.headlineMedium,
-      ),
-      const SizedBox(height: 5),
-      const Text(
-        'Рацион за выбранный день',
-        style: TextStyle(color: AppColors.muted),
-      ),
-      const SizedBox(height: 14),
-      PrimaryButton(
-        text: 'Добавить приём пищи',
-        icon: Icons.add_circle_outline,
-        onPressed: openEntry,
-      ),
-      const SizedBox(height: 16),
-      SizedBox(
-        height: 66,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          children: [
-            for (var offset = -3; offset <= 3; offset++)
-              InkWell(
-                onTap: () => widget.onDateSelected(
-                  widget.date.add(Duration(days: offset)),
-                ),
-                child: Container(
-                  width: 48,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: offset == 0 ? AppColors.green : Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        [
-                          'Пн',
-                          'Вт',
-                          'Ср',
-                          'Чт',
-                          'Пт',
-                          'Сб',
-                          'Вс',
-                        ][widget.date.add(Duration(days: offset)).weekday - 1],
-                        style: TextStyle(
-                          color: offset == 0 ? Colors.white : AppColors.muted,
-                        ),
-                      ),
-                      Text(
-                        '${widget.date.add(Duration(days: offset)).day}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: offset == 0 ? Colors.white : AppColors.ink,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 16),
-      WhiteCard(
-        child: Column(
-          children: [
-            TextField(
-              onChanged: (value) => setState(() => query = value),
-              decoration: const InputDecoration(
-                hintText: 'Поиск продукта',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            if (query.trim().isNotEmpty)
-              for (final product in widget.catalog.where(
-                (item) => item.name.toLowerCase().contains(
-                  query.trim().toLowerCase(),
-                ),
-              ))
-                ListTile(
-                  title: Text(product.name),
-                  subtitle: Text(
-                    '${product.kcal.toStringAsFixed(0)} ккал · '
-                    'Б ${product.protein.toStringAsFixed(0)} / '
-                    'Ж ${product.fat.toStringAsFixed(0)} / '
-                    'У ${product.carbs.toStringAsFixed(0)} г на 100 г',
-                  ),
-                  trailing: const Icon(Icons.add_circle_outline),
-                  onTap: () => openEntry(product: product),
-                ),
-            if (query.trim().isNotEmpty &&
-                !widget.catalog.any(
-                  (product) => product.name.toLowerCase().contains(
-                    query.trim().toLowerCase(),
-                  ),
-                ))
-              const Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: Text(
-                  'Ничего не найдено.',
-                  style: TextStyle(color: AppColors.muted),
-                ),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 14),
-      for (final meal in ['Завтрак', 'Обед', 'Ужин', 'Перекус']) ...[
-        WhiteCard(
-          child: Column(
+  Widget build(BuildContext context) {
+    final presentMeals = widget.entries.map((entry) => entry.meal).toSet();
+    final meals = [
+      ..._mealKinds.where(presentMeals.contains),
+      ...presentMeals.where((meal) => !_mealKinds.contains(meal)),
+    ];
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
             children: [
-              InkWell(
-                onTap: () => setState(
-                  () => expanded.contains(meal)
-                      ? expanded.remove(meal)
-                      : expanded.add(meal),
-                ),
-                child: Row(
+              Text(
+                'Дневник питания',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 5),
+              const Text(
+                'Рацион за выбранный день',
+                style: TextStyle(color: AppColors.muted),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 66,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
                   children: [
-                    Expanded(
-                      child: Text(
-                        meal,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                    for (var offset = -3; offset <= 3; offset++)
+                      InkWell(
+                        onTap: () => widget.onDateSelected(
+                          widget.date.add(Duration(days: offset)),
+                        ),
+                        child: Container(
+                          width: 48,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: offset == 0 ? AppColors.green : Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                [
+                                  'Пн',
+                                  'Вт',
+                                  'Ср',
+                                  'Чт',
+                                  'Пт',
+                                  'Сб',
+                                  'Вс',
+                                ][widget.date
+                                        .add(Duration(days: offset))
+                                        .weekday -
+                                    1],
+                                style: TextStyle(
+                                  color: offset == 0
+                                      ? Colors.white
+                                      : AppColors.muted,
+                                ),
+                              ),
+                              Text(
+                                '${widget.date.add(Duration(days: offset)).day}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: offset == 0
+                                      ? Colors.white
+                                      : AppColors.ink,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    Icon(
-                      expanded.contains(meal)
-                          ? Icons.expand_less
-                          : Icons.expand_more,
-                    ),
                   ],
                 ),
               ),
-              if (expanded.contains(meal)) ...[
-                for (final entry in widget.entries.where(
-                  (item) => item.meal == meal,
-                ))
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(entry.product.name),
-                    subtitle: Text(
-                      '${entry.grams.toStringAsFixed(0)} г · '
-                      'Б ${entry.protein.toStringAsFixed(0)} / '
-                      'Ж ${entry.fat.toStringAsFixed(0)} / '
-                      'У ${entry.carbs.toStringAsFixed(0)} г',
-                    ),
-                    trailing: Text('${entry.kcal.toStringAsFixed(0)} ккал'),
+              const SizedBox(height: 16),
+              for (final meal in meals) ...[
+                WhiteCard(
+                  child: Column(
+                    children: [
+                      InkWell(
+                        onTap: () => setState(
+                          () => expanded.contains(meal)
+                              ? expanded.remove(meal)
+                              : expanded.add(meal),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                meal,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              expanded.contains(meal)
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (expanded.contains(meal))
+                        for (final entry in widget.entries.where(
+                          (item) => item.meal == meal,
+                        ))
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(entry.product.name),
+                            subtitle: Text(
+                              '${entry.grams.toStringAsFixed(0)} г · '
+                              'Б ${entry.protein.toStringAsFixed(0)} / '
+                              'Ж ${entry.fat.toStringAsFixed(0)} / '
+                              'У ${entry.carbs.toStringAsFixed(0)} г',
+                            ),
+                            trailing: Text(
+                              '${entry.kcal.toStringAsFixed(0)} ккал',
+                            ),
+                          ),
+                    ],
                   ),
-                TextButton.icon(
-                  onPressed: () => openEntry(meal: meal),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Добавить продукт'),
                 ),
+                const SizedBox(height: 12),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+          child: PrimaryButton(
+            text: 'Добавить приём пищи',
+            icon: Icons.add_circle_outline,
+            onPressed: openEntry,
+          ),
+        ),
       ],
-    ],
-  );
+    );
+  }
 }
 
 class _AddMealSheet extends StatefulWidget {
   const _AddMealSheet({
     required this.date,
-    required this.initialMeal,
-    this.product,
+    required this.catalog,
+    this.initialMeal,
   });
   final DateTime date;
-  final String initialMeal;
-  final Product? product;
+  final List<Product> catalog;
+  final String? initialMeal;
 
   @override
   State<_AddMealSheet> createState() => _AddMealSheetState();
@@ -229,146 +208,245 @@ class _AddMealSheet extends StatefulWidget {
 
 class _AddMealSheetState extends State<_AddMealSheet> {
   final formKey = GlobalKey<FormState>();
-  late String meal = widget.initialMeal;
-  late final name = TextEditingController(text: widget.product?.name ?? '');
+  late String mealKind = widget.initialMeal == null
+      ? 'Завтрак'
+      : _mealKinds.contains(widget.initialMeal)
+      ? widget.initialMeal!
+      : _customMeal;
+  late final customName = TextEditingController(
+    text: _mealKinds.contains(widget.initialMeal)
+        ? ''
+        : widget.initialMeal ?? '',
+  );
+  final search = TextEditingController();
   final grams = TextEditingController(text: '100');
-  late final kcal = TextEditingController(
-    text: widget.product?.kcal.toStringAsFixed(0) ?? '0',
-  );
-  late final protein = TextEditingController(
-    text: widget.product?.protein.toStringAsFixed(1) ?? '0',
-  );
-  late final fat = TextEditingController(
-    text: widget.product?.fat.toStringAsFixed(1) ?? '0',
-  );
-  late final carbs = TextEditingController(
-    text: widget.product?.carbs.toStringAsFixed(1) ?? '0',
-  );
+  Product? selectedProduct;
 
   @override
   void dispose() {
-    for (final controller in [name, grams, kcal, protein, fat, carbs]) {
-      controller.dispose();
-    }
+    customName.dispose();
+    search.dispose();
+    grams.dispose();
     super.dispose();
   }
 
-  double parse(TextEditingController controller) =>
-      double.parse(controller.text.trim().replaceAll(',', '.'));
-
-  String? validateNumber(String? value, {bool positive = false}) {
-    final number = double.tryParse((value ?? '').trim().replaceAll(',', '.'));
-    if (number == null ||
-        !number.isFinite ||
-        number < 0 ||
-        (positive && number == 0) ||
-        number > 100000) {
-      return positive ? 'Укажите число больше нуля' : 'Укажите число от 0';
-    }
-    return null;
+  void selectProduct(Product product) {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      selectedProduct = product;
+      search.text = product.name;
+    });
   }
 
-  Widget numberField(
-    String label,
-    TextEditingController controller, {
-    bool positive = false,
-  }) => TextFormField(
-    controller: controller,
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    decoration: InputDecoration(labelText: label),
-    validator: (value) => validateNumber(value, positive: positive),
-  );
+  Future<void> enterBarcode() async {
+    var enteredCode = '';
+    final code = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Поиск по штрихкоду'),
+        content: TextField(
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Штрихкод продукта'),
+          onChanged: (value) => enteredCode = value,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, enteredCode.trim()),
+            child: const Text('Найти'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || code == null || code.isEmpty) return;
+    for (final product in widget.catalog) {
+      if (product.barcode.isNotEmpty && product.barcode == code) {
+        selectProduct(product);
+        return;
+      }
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('В каталоге нет продукта с таким штрихкодом.'),
+      ),
+    );
+  }
 
   void save() {
-    if (!formKey.currentState!.validate()) return;
-    final id = DateTime.now().microsecondsSinceEpoch;
+    if (selectedProduct == null || !formKey.currentState!.validate()) return;
+    final amount = double.parse(grams.text.trim().replaceAll(',', '.'));
     Navigator.pop(
       context,
       FoodEntry(
-        id: id,
-        product: Product(
-          id: widget.product?.id ?? id,
-          name: name.text.trim(),
-          kcal: parse(kcal),
-          protein: parse(protein),
-          fat: parse(fat),
-          carbs: parse(carbs),
-        ),
-        meal: meal,
-        grams: parse(grams),
+        id: DateTime.now().microsecondsSinceEpoch,
+        product: selectedProduct!,
+        meal: mealKind == _customMeal ? customName.text.trim() : mealKind,
+        grams: amount,
         date: widget.date,
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      20,
-      20,
-      20,
-      MediaQuery.viewInsetsOf(context).bottom + 24,
-    ),
-    child: SingleChildScrollView(
-      child: Form(
-        key: formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Добавить приём пищи',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Укажите значения на 100 г продукта.',
-              style: TextStyle(color: AppColors.muted),
-            ),
-            const SizedBox(height: 18),
-            DropdownButtonFormField<String>(
-              initialValue: meal,
-              decoration: const InputDecoration(labelText: 'Приём пищи'),
-              items: ['Завтрак', 'Обед', 'Ужин', 'Перекус']
-                  .map(
-                    (value) =>
-                        DropdownMenuItem(value: value, child: Text(value)),
+  Widget build(BuildContext context) {
+    final query = search.text.trim().toLowerCase();
+    final matches = query.isEmpty
+        ? widget.catalog
+        : widget.catalog
+              .where((product) => product.name.toLowerCase().contains(query))
+              .toList();
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        MediaQuery.viewInsetsOf(context).bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Добавить приём пищи',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Как назвать приём пищи?',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final kind in [..._mealKinds, _customMeal])
+                    ChoiceChip(
+                      label: Text(kind),
+                      selected: mealKind == kind,
+                      onSelected: (_) => setState(() => mealKind = kind),
+                    ),
+                ],
+              ),
+              if (mealKind == _customMeal) ...[
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: customName,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(labelText: 'Своё название'),
+                  validator: (value) => (value ?? '').trim().isEmpty
+                      ? 'Введите название приёма пищи'
+                      : null,
+                ),
+              ],
+              const SizedBox(height: 18),
+              const Text(
+                'Что вы ели?',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: search,
+                      onChanged: (_) => setState(() => selectedProduct = null),
+                      decoration: const InputDecoration(
+                        hintText: 'Найти продукт',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    onPressed: enterBarcode,
+                    tooltip: 'Найти по штрихкоду',
+                    icon: const Icon(Icons.qr_code_scanner),
+                  ),
+                ],
+              ),
+              if (selectedProduct == null) ...[
+                const SizedBox(height: 8),
+                if (matches.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      'Продукт не найден',
+                      style: TextStyle(color: AppColors.muted),
+                    ),
                   )
-                  .toList(),
-              onChanged: (value) => setState(() => meal = value ?? meal),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: name,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Название блюда или приёма пищи',
+                else
+                  for (final product in matches)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(product.name),
+                      subtitle: Text(
+                        '${product.kcal.toStringAsFixed(0)} ккал на 100 г',
+                      ),
+                      onTap: () => selectProduct(product),
+                    ),
+              ] else ...[
+                const SizedBox(height: 14),
+                WhiteCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selectedProduct!.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${selectedProduct!.kcal.toStringAsFixed(0)} ккал на 100 г',
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: grams,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Сколько граммов?',
+                  ),
+                  validator: (value) {
+                    final amount = double.tryParse(
+                      (value ?? '').trim().replaceAll(',', '.'),
+                    );
+                    return amount == null ||
+                            !amount.isFinite ||
+                            amount <= 0 ||
+                            amount > 100000
+                        ? 'Укажите вес больше нуля'
+                        : null;
+                  },
+                ),
+              ],
+              const SizedBox(height: 18),
+              PrimaryButton(
+                text: 'Сохранить',
+                onPressed: selectedProduct == null ? null : save,
               ),
-              validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Введите название' : null,
-            ),
-            const SizedBox(height: 12),
-            numberField('Вес порции, г', grams, positive: true),
-            const SizedBox(height: 12),
-            numberField('Калории, ккал', kcal),
-            const SizedBox(height: 12),
-            numberField('Белки, г', protein),
-            const SizedBox(height: 12),
-            numberField('Жиры, г', fat),
-            const SizedBox(height: 12),
-            numberField('Углеводы, г', carbs),
-            const SizedBox(height: 18),
-            PrimaryButton(text: 'Сохранить', onPressed: save),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Отмена'),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Отмена'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
