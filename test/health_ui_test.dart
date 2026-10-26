@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_app_ui/features/diary/presentation/diary_screen.dart';
+import 'package:health_app_ui/features/health/domain/models.dart';
 import 'package:health_app_ui/main.dart';
 
 void main() {
@@ -65,6 +66,52 @@ void main() {
     );
   });
 
+  testWidgets('Приёмы пищи показаны в порядке добавления', (tester) async {
+    phoneSize(tester);
+    final day = DateTime(2026, 10, 27);
+    const product = Product(
+      id: 1,
+      name: 'Овсяная каша',
+      kcal: 112,
+      protein: 3.6,
+      fat: 4,
+      carbs: 15.2,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DiaryScreen(
+            entries: [
+              FoodEntry(
+                id: 1,
+                product: product,
+                meal: 'Перекус',
+                grams: 100,
+                date: day,
+              ),
+              FoodEntry(
+                id: 2,
+                product: product,
+                meal: 'Завтрак',
+                grams: 100,
+                date: day,
+              ),
+            ],
+            catalog: const [product],
+            date: day,
+            onDateSelected: (_) {},
+            onAddEntry: (_) {},
+            onDeleteMeal: (_) {},
+          ),
+        ),
+      ),
+    );
+    expect(
+      tester.getTopLeft(find.text('Перекус')).dy,
+      lessThan(tester.getTopLeft(find.text('Завтрак')).dy),
+    );
+  });
+
   testWidgets('Запись добавляется после выбора продукта и веса', (
     tester,
   ) async {
@@ -114,6 +161,39 @@ void main() {
     expect(find.text('Штрихкод продукта'), findsOneWidget);
     await tester.tap(find.text('Отмена').last);
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('Повторное добавление продукта не дублирует каталог', (
+    tester,
+  ) async {
+    await openApp(tester);
+    await tester.tap(find.byType(NavigationDestination).at(1));
+    await tester.pumpAndSettle();
+
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.text('Добавить приём пищи'));
+      await tester.pumpAndSettle();
+      final chickenInPicker = find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Куриная грудка'),
+      );
+      expect(chickenInPicker, findsOneWidget);
+      await tester.tap(chickenInPicker);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Сохранить'));
+      await tester.tap(find.text('Сохранить'));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.text('Добавить приём пищи'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Куриная грудка'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Случайно добавленный перекус можно удалить', (tester) async {

@@ -73,11 +73,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final presentMeals = widget.entries.map((entry) => entry.meal).toSet();
-    final meals = [
-      ..._mealKinds.where(presentMeals.contains),
-      ...presentMeals.where((meal) => !_mealKinds.contains(meal)),
-    ];
+    final meals = widget.entries.map((entry) => entry.meal).toSet();
     return Column(
       children: [
         Expanded(

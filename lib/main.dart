@@ -465,35 +465,33 @@ class _AppShellState extends State<AppShell> {
   DateTime date = DateTime.now();
   final waterByDay = <DateTime, int>{};
   UserProfile get user => widget.user;
+  final catalog = const <Product>[
+    Product(
+      id: 1,
+      name: 'Овсяная каша',
+      kcal: 112,
+      protein: 3.6,
+      fat: 4,
+      carbs: 15.2,
+    ),
+    Product(
+      id: 2,
+      name: 'Куриная грудка',
+      kcal: 165,
+      protein: 31,
+      fat: 3.6,
+      carbs: 0,
+    ),
+  ];
   late final entries = [
     FoodEntry(
       id: 1,
-      product: const Product(
-        id: 1,
-        name: 'Овсяная каша',
-        kcal: 112,
-        protein: 3.6,
-        fat: 4,
-        carbs: 15.2,
-      ),
+      product: catalog[0],
       meal: 'Завтрак',
       grams: 250,
       date: date,
     ),
-    FoodEntry(
-      id: 2,
-      product: const Product(
-        id: 2,
-        name: 'Куриная грудка',
-        kcal: 165,
-        protein: 31,
-        fat: 3.6,
-        carbs: 0,
-      ),
-      meal: 'Обед',
-      grams: 180,
-      date: date,
-    ),
+    FoodEntry(id: 2, product: catalog[1], meal: 'Обед', grams: 180, date: date),
   ];
   late final activity = ActivityRecord(
     date: date,
@@ -575,7 +573,7 @@ class _AppShellState extends State<AppShell> {
           entries: entries
               .where((entry) => DateUtils.isSameDay(entry.date, date))
               .toList(),
-          catalog: entries.map((entry) => entry.product).toList(),
+          catalog: catalog,
           date: date,
           onDateSelected: (value) => setState(() => date = value),
           onAddEntry: (entry) => setState(() => entries.add(entry)),
