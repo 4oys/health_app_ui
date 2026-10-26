@@ -35,6 +35,17 @@ void main() {
         findsWidgets,
       );
     }
+    await tester.tap(find.byType(NavigationDestination).at(3));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Выйти из аккаунта'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Выйти из аккаунта'));
+    await tester.pumpAndSettle();
+    expect(find.text('Начать'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
   });
 
   testWidgets('Вход работает без ввода почты и пароля', (tester) async {

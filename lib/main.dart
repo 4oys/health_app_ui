@@ -583,12 +583,6 @@ class _AppShellState extends State<AppShell> {
                   DateUtils.isSameDay(entry.date, date) && entry.meal == meal,
             ),
           ),
-          onDeleteEntry: (id) => setState(
-            () => entries.removeWhere(
-              (entry) =>
-                  DateUtils.isSameDay(entry.date, date) && entry.id == id,
-            ),
-          ),
         ),
         AnalyticsScreen(user: user),
         ProfileScreen(user: user, onExit: widget.onExit),
@@ -907,7 +901,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       OutlinedButton.icon(
         onPressed: widget.onExit,
         icon: const Icon(Icons.logout),
-        label: const Text('Вернуться к приветствию'),
+        label: const Text('Выйти из аккаунта'),
       ),
     ],
   );

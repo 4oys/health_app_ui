@@ -50,7 +50,6 @@ void main() {
             onDateSelected: (_) {},
             onAddEntry: (_) {},
             onDeleteMeal: (_) {},
-            onDeleteEntry: (_) {},
           ),
         ),
       ),
@@ -76,6 +75,7 @@ void main() {
     expect(find.text('Обед'), findsOneWidget);
     expect(find.text('Ужин'), findsNothing);
     expect(find.text('Перекус'), findsNothing);
+    expect(find.byTooltip('Удалить продукт Овсяная каша'), findsNothing);
     await tester.tap(find.text('Добавить приём пищи'));
     await tester.pumpAndSettle();
     expect(find.text('Что вы ели?'), findsOneWidget);
@@ -147,22 +147,6 @@ void main() {
     await tester.tap(find.byType(NavigationDestination).at(0));
     await tester.pumpAndSettle();
     expect(find.text('577'), findsOneWidget);
-  });
-
-  testWidgets('Последний продукт удаляет пустой приём пищи', (tester) async {
-    await openApp(tester);
-    await tester.tap(find.byType(NavigationDestination).at(1));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Удалить продукт Овсяная каша'));
-    await tester.pumpAndSettle();
-    expect(find.text('Удалить продукт?'), findsOneWidget);
-    await tester.tap(find.text('Удалить'));
-    await tester.pumpAndSettle();
-    expect(find.text('Завтрак'), findsNothing);
-    expect(find.text('Обед'), findsOneWidget);
-    await tester.tap(find.byType(NavigationDestination).at(0));
-    await tester.pumpAndSettle();
-    expect(find.text('297'), findsOneWidget);
   });
 
   testWidgets('Просмотр сводки открывается без сообщения-заглушки', (

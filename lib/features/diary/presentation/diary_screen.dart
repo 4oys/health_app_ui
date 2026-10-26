@@ -15,7 +15,6 @@ class DiaryScreen extends StatefulWidget {
     required this.onDateSelected,
     required this.onAddEntry,
     required this.onDeleteMeal,
-    required this.onDeleteEntry,
   });
 
   final List<FoodEntry> entries;
@@ -24,7 +23,6 @@ class DiaryScreen extends StatefulWidget {
   final ValueChanged<DateTime> onDateSelected;
   final ValueChanged<FoodEntry> onAddEntry;
   final ValueChanged<String> onDeleteMeal;
-  final ValueChanged<int> onDeleteEntry;
 
   @override
   State<DiaryScreen> createState() => _DiaryScreenState();
@@ -71,27 +69,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     if (confirmed != true || !mounted) return;
     widget.onDeleteMeal(meal);
     setState(() => expanded.remove(meal));
-  }
-
-  Future<void> deleteEntry(FoodEntry entry) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Удалить продукт?'),
-        content: Text('«${entry.product.name}» будет удалён из дневника.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Удалить'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) widget.onDeleteEntry(entry.id);
   }
 
   @override
@@ -220,11 +197,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                               'Б ${entry.protein.toStringAsFixed(0)} / '
                               'Ж ${entry.fat.toStringAsFixed(0)} / '
                               'У ${entry.carbs.toStringAsFixed(0)} г',
-                            ),
-                            trailing: IconButton(
-                              tooltip: 'Удалить продукт ${entry.product.name}',
-                              onPressed: () => deleteEntry(entry),
-                              icon: const Icon(Icons.close),
                             ),
                           ),
                     ],
