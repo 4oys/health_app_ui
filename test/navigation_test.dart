@@ -83,7 +83,7 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
-  testWidgets('Профиль показывает выбранную активность и обновлённый вес', (
+  testWidgets('Профиль показывает выбранную активность без редактирования', (
     tester,
   ) async {
     phoneSize(tester);
@@ -119,15 +119,16 @@ void main() {
     expect(find.text('Взвешивание сегодня'), findsNothing);
     await tester.tap(find.text('Редактировать профиль'));
     await tester.pumpAndSettle();
-    expect(find.text('Уровень активности'), findsNothing);
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Текущий вес, кг'),
-      '72,0',
+    expect(
+      find.text('Параметры пока доступны только для просмотра'),
+      findsOneWidget,
     );
-    await tester.ensureVisible(find.text('Сохранить'));
-    await tester.tap(find.text('Сохранить'));
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Сохранить'), findsNothing);
+    expect(find.text('74.2'), findsOneWidget);
+    await tester.tap(find.text('Закрыть'));
     await tester.pumpAndSettle();
-    expect(find.text('72.0 кг'), findsOneWidget);
+    expect(find.text('74.2 кг'), findsOneWidget);
     expect(find.text('Высокая'), findsOneWidget);
   });
 }
