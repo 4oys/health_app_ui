@@ -884,7 +884,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Данные здоровья'),
+              title: const Text('Показатели здоровья'),
+              subtitle: const Text('Шаги, пульс и сон из приложений телефона'),
               value: health,
               onChanged: (value) => setState(() => health = value),
             ),

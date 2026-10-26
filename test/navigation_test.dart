@@ -42,6 +42,11 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Выйти из аккаунта')),
+      alignment: 1,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Выйти из аккаунта'));
     await tester.pumpAndSettle();
     expect(find.text('Начать'), findsOneWidget);
