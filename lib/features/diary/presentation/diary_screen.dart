@@ -229,23 +229,29 @@ class _MealIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? asset;
+    final IconData icon;
+    final Color foreground;
     final Color background;
     switch (meal) {
       case 'Завтрак':
-        asset = 'assets/meal_icons/breakfast.png';
+        icon = Icons.wb_twilight_rounded;
+        foreground = const Color(0xFFE97626);
         background = const Color(0xFFFFE9DC);
       case 'Обед':
-        asset = 'assets/meal_icons/lunch.png';
+        icon = Icons.wb_sunny_rounded;
+        foreground = const Color(0xFF2666C8);
         background = const Color(0xFFE2EDFF);
       case 'Перекус':
-        asset = 'assets/meal_icons/snack.png';
+        icon = Icons.eco_rounded;
+        foreground = const Color(0xFF345A48);
         background = const Color(0xFFE7F0EA);
       case 'Ужин':
-        asset = 'assets/meal_icons/dinner.png';
+        icon = Icons.nightlight_round_rounded;
+        foreground = const Color(0xFF7664A2);
         background = const Color(0xFFEDEAF8);
       default:
-        asset = null;
+        icon = Icons.restaurant_menu_rounded;
+        foreground = AppColors.green;
         background = AppColors.mint;
     }
     return Container(
@@ -256,16 +262,7 @@ class _MealIcon extends StatelessWidget {
         color: background,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: asset == null
-          ? const Icon(Icons.edit_rounded, size: 20, color: AppColors.green)
-          : Image.asset(
-              asset,
-              width: 22,
-              height: 22,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.medium,
-              excludeFromSemantics: true,
-            ),
+      child: Icon(icon, size: 21, color: foreground),
     );
   }
 }
