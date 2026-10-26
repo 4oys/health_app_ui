@@ -16,7 +16,7 @@ class HealthUiApp extends StatefulWidget {
 
 class _HealthUiAppState extends State<HealthUiApp> {
   int step = 0;
-  UserProfile user = const UserProfile();
+  UserProfile profile = const UserProfile();
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'ANVIA',
@@ -31,25 +31,33 @@ class _HealthUiAppState extends State<HealthUiApp> {
     ],
     home: switch (step) {
       0 => WelcomeScreen(
-        onStart: () => setState(() => step = 4),
-        onConfigure: () => setState(() => step = 2),
+        onStart: () => setState(() => step = 2),
+        onSignIn: () => setState(() => step = 1),
       ),
-      2 => NameScreen(
+      1 => AccountScreen(
+        isRegistration: false,
         onBack: () => setState(() => step = 0),
+        onSwitch: () => setState(() => step = 2),
+        onContinue: (_) => setState(() => step = 4),
+      ),
+      2 => AccountScreen(
+        isRegistration: true,
+        onBack: () => setState(() => step = 0),
+        onSwitch: () => setState(() => step = 1),
         onContinue: (name) => setState(() {
-          user = user.copyWith(name: name);
+          profile = profile.copyWith(name: name);
           step = 3;
         }),
       ),
       3 => SetupScreen(
-        user: user,
+        user: profile,
         onBack: () => setState(() => step = 2),
-        onContinue: (updatedUser) => setState(() {
-          user = updatedUser;
+        onContinue: (user) => setState(() {
+          profile = user;
           step = 4;
         }),
       ),
-      _ => AppShell(user: user, onExit: () => setState(() => step = 0)),
+      _ => AppShell(user: profile, onExit: () => setState(() => step = 0)),
     },
   );
 }
@@ -58,10 +66,10 @@ class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({
     super.key,
     required this.onStart,
-    required this.onConfigure,
+    required this.onSignIn,
   });
   final VoidCallback onStart;
-  final VoidCallback onConfigure;
+  final VoidCallback onSignIn;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -82,8 +90,8 @@ class WelcomeScreen extends StatelessWidget {
             const Spacer(),
             PrimaryButton(text: 'Начать', onPressed: onStart),
             TextButton(
-              onPressed: onConfigure,
-              child: const Text('Настроить профиль'),
+              onPressed: onSignIn,
+              child: const Text('У меня уже есть аккаунт'),
             ),
           ],
         ),
@@ -92,19 +100,33 @@ class WelcomeScreen extends StatelessWidget {
   );
 }
 
-class NameScreen extends StatefulWidget {
-  const NameScreen({super.key, required this.onBack, required this.onContinue});
+class AccountScreen extends StatefulWidget {
+  const AccountScreen({
+    super.key,
+    required this.isRegistration,
+    required this.onBack,
+    required this.onSwitch,
+    required this.onContinue,
+  });
+  final bool isRegistration;
   final VoidCallback onBack;
+  final VoidCallback onSwitch;
   final ValueChanged<String> onContinue;
   @override
-  State<NameScreen> createState() => _NameScreenState();
+  State<AccountScreen> createState() => _AccountScreenState();
 }
 
-class _NameScreenState extends State<NameScreen> {
+class _AccountScreenState extends State<AccountScreen> {
+  final formKey = GlobalKey<FormState>();
   final name = TextEditingController(text: 'Александр');
+  final email = TextEditingController();
+  final password = TextEditingController();
+  bool visible = false;
   @override
   void dispose() {
     name.dispose();
+    email.dispose();
+    password.dispose();
     super.dispose();
   }
 
@@ -124,34 +146,75 @@ class _NameScreenState extends State<NameScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Как к вам обращаться?',
+            widget.isRegistration ? 'Создать аккаунт' : 'Войти',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Имя можно изменить. Если всё подходит, просто продолжайте.',
-            style: TextStyle(color: AppColors.muted),
-          ),
           const SizedBox(height: 24),
           WhiteCard(
-            child: Column(
-              children: [
-                TextField(
-                  controller: name,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(labelText: 'Ваше имя'),
-                ),
-                const SizedBox(height: 20),
-                PrimaryButton(
-                  text: 'Продолжить',
-                  onPressed: () {
-                    final enteredName = name.text.trim();
-                    widget.onContinue(
-                      enteredName.isEmpty ? 'Александр' : enteredName,
-                    );
-                  },
-                ),
-              ],
+            child: Form(
+              key: formKey,
+              child: Column(
+                children: [
+                  if (widget.isRegistration) ...[
+                    TextFormField(
+                      controller: name,
+                      decoration: const InputDecoration(labelText: 'Ваше имя'),
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? 'Введите имя'
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  TextFormField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Электронная почта',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: password,
+                    obscureText: !visible,
+                    decoration: InputDecoration(
+                      labelText: 'Пароль',
+                      suffixIcon: IconButton(
+                        tooltip: visible ? 'Скрыть пароль' : 'Показать пароль',
+                        onPressed: () => setState(() => visible = !visible),
+                        icon: Icon(
+                          visible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  PrimaryButton(
+                    text: widget.isRegistration
+                        ? 'Продолжить к настройке'
+                        : 'Войти',
+                    onPressed: () {
+                      widget.onContinue(
+                        name.text.trim().isEmpty
+                            ? 'Александр'
+                            : name.text.trim(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: widget.onSwitch,
+            child: Text(
+              widget.isRegistration
+                  ? 'Уже есть аккаунт? Войти'
+                  : 'Нет аккаунта? Создать',
             ),
           ),
         ],
