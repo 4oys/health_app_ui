@@ -49,6 +49,8 @@ void main() {
             date: DateTime(2026, 10, 27),
             onDateSelected: (_) {},
             onAddEntry: (_) {},
+            onDeleteMeal: (_) {},
+            onDeleteEntry: (_) {},
           ),
         ),
       ),
@@ -112,6 +114,55 @@ void main() {
     expect(find.text('Штрихкод продукта'), findsOneWidget);
     await tester.tap(find.text('Отмена').last);
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('Случайно добавленный перекус можно удалить', (tester) async {
+    await openApp(tester);
+    await tester.tap(find.byType(NavigationDestination).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Добавить приём пищи'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Перекус'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Овсяная каша').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Сохранить'));
+    await tester.tap(find.text('Сохранить'));
+    await tester.pumpAndSettle();
+    expect(find.text('Перекус'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView).first, const Offset(0, -220));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Удалить приём пищи Перекус'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Отмена'));
+    await tester.pumpAndSettle();
+    expect(find.text('Перекус'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Удалить приём пищи Перекус'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Удалить'));
+    await tester.pumpAndSettle();
+    expect(find.text('Перекус'), findsNothing);
+    await tester.tap(find.byType(NavigationDestination).at(0));
+    await tester.pumpAndSettle();
+    expect(find.text('577'), findsOneWidget);
+  });
+
+  testWidgets('Последний продукт удаляет пустой приём пищи', (tester) async {
+    await openApp(tester);
+    await tester.tap(find.byType(NavigationDestination).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Удалить продукт Овсяная каша'));
+    await tester.pumpAndSettle();
+    expect(find.text('Удалить продукт?'), findsOneWidget);
+    await tester.tap(find.text('Удалить'));
+    await tester.pumpAndSettle();
+    expect(find.text('Завтрак'), findsNothing);
+    expect(find.text('Обед'), findsOneWidget);
+    await tester.tap(find.byType(NavigationDestination).at(0));
+    await tester.pumpAndSettle();
+    expect(find.text('297'), findsOneWidget);
   });
 
   testWidgets('Просмотр сводки открывается без сообщения-заглушки', (

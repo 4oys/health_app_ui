@@ -14,6 +14,8 @@ class DiaryScreen extends StatefulWidget {
     required this.catalog,
     required this.onDateSelected,
     required this.onAddEntry,
+    required this.onDeleteMeal,
+    required this.onDeleteEntry,
   });
 
   final List<FoodEntry> entries;
@@ -21,6 +23,8 @@ class DiaryScreen extends StatefulWidget {
   final DateTime date;
   final ValueChanged<DateTime> onDateSelected;
   final ValueChanged<FoodEntry> onAddEntry;
+  final ValueChanged<String> onDeleteMeal;
+  final ValueChanged<int> onDeleteEntry;
 
   @override
   State<DiaryScreen> createState() => _DiaryScreenState();
@@ -44,6 +48,50 @@ class _DiaryScreenState extends State<DiaryScreen> {
     if (entry == null || !mounted) return;
     widget.onAddEntry(entry);
     setState(() => expanded.add(entry.meal));
+  }
+
+  Future<void> deleteMeal(String meal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удалить приём пищи?'),
+        content: Text('«$meal» и все продукты в нём будут удалены.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    widget.onDeleteMeal(meal);
+    setState(() => expanded.remove(meal));
+  }
+
+  Future<void> deleteEntry(FoodEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удалить продукт?'),
+        content: Text('«${entry.product.name}» будет удалён из дневника.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) widget.onDeleteEntry(entry.id);
   }
 
   @override
@@ -151,6 +199,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                   ? Icons.expand_less
                                   : Icons.expand_more,
                             ),
+                            IconButton(
+                              tooltip: 'Удалить приём пищи $meal',
+                              onPressed: () => deleteMeal(meal),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
                           ],
                         ),
                       ),
@@ -163,12 +216,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
                             title: Text(entry.product.name),
                             subtitle: Text(
                               '${entry.grams.toStringAsFixed(0)} г · '
+                              '${entry.kcal.toStringAsFixed(0)} ккал\n'
                               'Б ${entry.protein.toStringAsFixed(0)} / '
                               'Ж ${entry.fat.toStringAsFixed(0)} / '
                               'У ${entry.carbs.toStringAsFixed(0)} г',
                             ),
-                            trailing: Text(
-                              '${entry.kcal.toStringAsFixed(0)} ккал',
+                            trailing: IconButton(
+                              tooltip: 'Удалить продукт ${entry.product.name}',
+                              onPressed: () => deleteEntry(entry),
+                              icon: const Icon(Icons.close),
                             ),
                           ),
                     ],

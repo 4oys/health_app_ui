@@ -577,6 +577,18 @@ class _AppShellState extends State<AppShell> {
           date: date,
           onDateSelected: (value) => setState(() => date = value),
           onAddEntry: (entry) => setState(() => entries.add(entry)),
+          onDeleteMeal: (meal) => setState(
+            () => entries.removeWhere(
+              (entry) =>
+                  DateUtils.isSameDay(entry.date, date) && entry.meal == meal,
+            ),
+          ),
+          onDeleteEntry: (id) => setState(
+            () => entries.removeWhere(
+              (entry) =>
+                  DateUtils.isSameDay(entry.date, date) && entry.id == id,
+            ),
+          ),
         ),
         AnalyticsScreen(user: user),
         ProfileScreen(user: user, onExit: widget.onExit),
