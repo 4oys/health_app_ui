@@ -162,6 +162,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         ),
                         child: Row(
                           children: [
+                            _MealIcon(meal: meal),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 meal,
@@ -216,6 +218,50 @@ class _DiaryScreenState extends State<DiaryScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MealIcon extends StatelessWidget {
+  const _MealIcon({required this.meal});
+
+  final String meal;
+
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon;
+    final Color foreground;
+    final Color background;
+    switch (meal) {
+      case 'Завтрак':
+        icon = Icons.breakfast_dining_rounded;
+        foreground = const Color(0xFFD66D31);
+        background = const Color(0xFFFFE9DC);
+      case 'Обед':
+        icon = Icons.wb_sunny_rounded;
+        foreground = AppColors.blue;
+        background = const Color(0xFFE2EDFF);
+      case 'Перекус':
+        icon = Icons.eco_rounded;
+        foreground = const Color(0xFF456052);
+        background = const Color(0xFFE7F0EA);
+      case 'Ужин':
+        icon = Icons.nights_stay_rounded;
+        foreground = const Color(0xFF7166AC);
+        background = const Color(0xFFEDEAF8);
+      default:
+        icon = Icons.restaurant_menu_rounded;
+        foreground = AppColors.green;
+        background = AppColors.mint;
+    }
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, size: 20, color: foreground),
     );
   }
 }
