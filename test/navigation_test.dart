@@ -38,6 +38,25 @@ void main() {
     await tester.tap(find.byType(NavigationDestination).at(3));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
+      find.text('Помощь и вопросы'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Помощь и вопросы')),
+      alignment: 1,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Помощь и вопросы'));
+    await tester.pumpAndSettle();
+    expect(find.text('Частые вопросы'), findsOneWidget);
+    await tester.tap(find.text('Как добавить приём пищи?'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('выберите тип приёма пищи'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Мой профиль'), findsOneWidget);
+    await tester.scrollUntilVisible(
       find.text('Выйти из аккаунта'),
       200,
       scrollable: find.byType(Scrollable).first,

@@ -6,6 +6,7 @@ import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/diary/presentation/diary_screen.dart';
 import 'features/health/domain/calculations.dart';
 import 'features/health/domain/models.dart';
+import 'features/help/presentation/help_screen.dart';
 
 void main() => runApp(const HealthUiApp());
 
@@ -899,6 +900,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       const SizedBox(height: 14),
+      OutlinedButton.icon(
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const HelpScreen()));
+        },
+        icon: const Icon(Icons.help_outline),
+        label: const Text('Помощь и вопросы'),
+      ),
+      const SizedBox(height: 8),
       OutlinedButton.icon(
         onPressed: widget.onExit,
         icon: const Icon(Icons.logout),
