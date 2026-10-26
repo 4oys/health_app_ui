@@ -229,39 +229,43 @@ class _MealIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final IconData icon;
-    final Color foreground;
+    final String? asset;
     final Color background;
     switch (meal) {
       case 'Завтрак':
-        icon = Icons.breakfast_dining_rounded;
-        foreground = const Color(0xFFD66D31);
+        asset = 'assets/meal_icons/breakfast.png';
         background = const Color(0xFFFFE9DC);
       case 'Обед':
-        icon = Icons.wb_sunny_rounded;
-        foreground = AppColors.blue;
+        asset = 'assets/meal_icons/lunch.png';
         background = const Color(0xFFE2EDFF);
       case 'Перекус':
-        icon = Icons.eco_rounded;
-        foreground = const Color(0xFF456052);
+        asset = 'assets/meal_icons/snack.png';
         background = const Color(0xFFE7F0EA);
       case 'Ужин':
-        icon = Icons.nights_stay_rounded;
-        foreground = const Color(0xFF7166AC);
+        asset = 'assets/meal_icons/dinner.png';
         background = const Color(0xFFEDEAF8);
       default:
-        icon = Icons.restaurant_menu_rounded;
-        foreground = AppColors.green;
+        asset = null;
         background = AppColors.mint;
     }
     return Container(
       width: 36,
       height: 36,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, size: 20, color: foreground),
+      child: asset == null
+          ? const Icon(Icons.edit_rounded, size: 20, color: AppColors.green)
+          : Image.asset(
+              asset,
+              width: 22,
+              height: 22,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.medium,
+              excludeFromSemantics: true,
+            ),
     );
   }
 }
