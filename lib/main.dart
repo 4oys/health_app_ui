@@ -277,6 +277,7 @@ class _SetupScreenState extends State<SetupScreen> {
     appBar: AppBar(leading: BackButton(onPressed: widget.onBack)),
     body: SafeArea(
       child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         children: [
           Text(
@@ -307,6 +308,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: age,
+                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Возраст, лет',
@@ -321,6 +323,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: height,
+                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Рост, см'),
                     validator: validNumber,
@@ -328,6 +331,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: weight,
+                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Текущий вес, кг',
@@ -337,6 +341,9 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: target,
+                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Желаемый вес, кг',

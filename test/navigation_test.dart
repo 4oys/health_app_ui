@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_app_ui/main.dart';
+import 'package:health_app_ui/features/health/domain/models.dart';
 
 void main() {
   void phoneSize(WidgetTester tester) {
@@ -50,9 +51,9 @@ void main() {
     await tester.tap(find.text('Помощь и вопросы'));
     await tester.pumpAndSettle();
     expect(find.text('Частые вопросы'), findsOneWidget);
-    await tester.tap(find.text('Как добавить приём пищи?'));
+    await tester.tap(find.text('Как учитывать воду?'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('выберите тип приёма пищи'), findsOneWidget);
+    expect(find.textContaining('На главном экране нажмите'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
@@ -125,10 +126,16 @@ void main() {
     );
     expect(find.byType(TextFormField), findsNothing);
     expect(find.text('Сохранить'), findsNothing);
-    expect(find.text('74.2'), findsOneWidget);
+    expect(
+      find.text(const UserProfile().weightKg.toStringAsFixed(1)),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Закрыть'));
     await tester.pumpAndSettle();
-    expect(find.text('74.2 кг'), findsOneWidget);
+    expect(
+      find.text('${const UserProfile().weightKg.toStringAsFixed(1)} кг'),
+      findsOneWidget,
+    );
     expect(find.text('Высокая'), findsOneWidget);
   });
 }
