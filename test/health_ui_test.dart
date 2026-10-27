@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_app_ui/features/diary/presentation/diary_screen.dart';
+import 'package:health_app_ui/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:health_app_ui/features/health/domain/models.dart';
 import 'package:health_app_ui/main.dart';
 
@@ -28,6 +29,11 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('+ 250 мл')),
+      alignment: 0.7,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('+ 250 мл'));
     await tester.pumpAndSettle();
     expect(find.text('250 / 2000 мл'), findsOneWidget);
@@ -37,6 +43,58 @@ void main() {
     await tester.tap(find.byTooltip('Убрать 250 мл'));
     await tester.pumpAndSettle();
     expect(find.text('500 / 2000 мл'), findsOneWidget);
+  });
+
+  testWidgets('Баланс энергии учитывает еду и сожжённые калории', (
+    tester,
+  ) async {
+    phoneSize(tester);
+    final day = DateTime(2026, 10, 27);
+    const product = Product(
+      id: 3,
+      name: 'Продукт для проверки',
+      kcal: 500,
+      protein: 20,
+      fat: 10,
+      carbs: 60,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DashboardScreen(
+            user: const UserProfile(calorieTarget: 2200),
+            entries: [
+              FoodEntry(
+                id: 1,
+                product: product,
+                meal: 'Обед',
+                grams: 100,
+                date: day,
+              ),
+            ],
+            activity: ActivityRecord(
+              date: day,
+              steps: 0,
+              heartRate: 0,
+              sleepMinutes: 0,
+              burnedCalories: 120,
+            ),
+            date: day,
+            waterMl: 0,
+            onAddWater: (_) {},
+            onUndoWater: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Баланс энергии'), findsOneWidget);
+    expect(find.text('500'), findsOneWidget);
+    expect(find.text('1820'), findsOneWidget);
+    expect(find.text('120'), findsOneWidget);
+    expect(find.text('Съедено'), findsOneWidget);
+    expect(find.text('Сожжено'), findsOneWidget);
+    expect(find.text('Осталось'), findsOneWidget);
   });
 
   testWidgets('Новый день не содержит пустых приёмов пищи', (tester) async {

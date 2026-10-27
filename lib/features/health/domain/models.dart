@@ -99,6 +99,7 @@ class ActivityRecord {
     required this.steps,
     required this.heartRate,
     required this.sleepMinutes,
+    this.burnedCalories = 0,
     this.deepMinutes = 0,
     this.lightMinutes = 0,
     this.remMinutes = 0,
@@ -107,6 +108,7 @@ class ActivityRecord {
   final int steps;
   final int heartRate;
   final int sleepMinutes;
+  final int burnedCalories;
   final int deepMinutes;
   final int lightMinutes;
   final int remMinutes;

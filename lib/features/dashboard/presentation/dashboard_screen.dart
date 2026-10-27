@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
@@ -33,6 +35,7 @@ class DashboardScreen extends StatelessWidget {
     final remaining = HealthCalculations.remainingCalories(
       user.calorieTarget,
       entries,
+      burnedCalories: activity.burnedCalories,
     );
     final macroScale = user.calorieTarget / 2200;
     final weekday = [
@@ -95,81 +98,85 @@ class DashboardScreen extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
-                  _Badge(
-                    remaining < 0
-                        ? 'Сверх нормы ${-remaining} ккал'
-                        : 'Ост. $remaining ккал',
-                  ),
+                  _Badge('Норма ${user.calorieTarget} ккал'),
                 ],
               ),
-              const SizedBox(height: 19),
-              SizedBox(
-                width: 178,
-                height: 178,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox.expand(
-                      child: CircularProgressIndicator(
-                        value: HealthCalculations.progress(
-                          kcal,
-                          user.calorieTarget,
-                        ),
-                        strokeWidth: 14,
-                        strokeCap: StrokeCap.round,
-                        backgroundColor: AppColors.pale,
-                        color: AppColors.green,
-                      ),
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _EnergyValue(value: '$kcal', label: 'Съедено'),
+                  ),
+                  SizedBox(
+                    width: 154,
+                    height: 154,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Text(
-                          '$kcal',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.ink,
+                        CustomPaint(
+                          size: const Size.square(154),
+                          painter: _EnergyArcPainter(
+                            progress: HealthCalculations.progress(
+                              kcal,
+                              user.calorieTarget + activity.burnedCalories,
+                            ),
                           ),
                         ),
-                        Text(
-                          'из ${user.calorieTarget} ккал',
-                          style: const TextStyle(fontSize: 12),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '${remaining.abs()}',
+                                style: const TextStyle(
+                                  fontSize: 29,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              remaining < 0 ? 'Сверх нормы' : 'Осталось',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Expanded(
+                    child: _EnergyValue(
+                      value: '${activity.burnedCalories}',
+                      label: 'Сожжено',
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: AppColors.pale,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Row(
-                  children: [
-                    _Macro(
-                      'Белки',
-                      HealthCalculations.totalProtein(entries),
-                      140 * macroScale,
-                      AppColors.green,
-                    ),
-                    _Macro(
-                      'Жиры',
-                      HealthCalculations.totalFat(entries),
-                      70 * macroScale,
-                      AppColors.orange,
-                    ),
-                    _Macro(
-                      'Углеводы',
-                      HealthCalculations.totalCarbs(entries),
-                      260 * macroScale,
-                      const Color(0xFF19B98C),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 18),
+              const Divider(height: 1, color: AppColors.pale),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _Macro(
+                    'Углеводы',
+                    HealthCalculations.totalCarbs(entries),
+                    260 * macroScale,
+                  ),
+                  _Macro(
+                    'Белки',
+                    HealthCalculations.totalProtein(entries),
+                    140 * macroScale,
+                  ),
+                  _Macro(
+                    'Жиры',
+                    HealthCalculations.totalFat(entries),
+                    70 * macroScale,
+                  ),
+                ],
               ),
             ],
           ),
@@ -368,48 +375,100 @@ class _Badge extends StatelessWidget {
   );
 }
 
+class _EnergyValue extends StatelessWidget {
+  const _EnergyValue({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          value,
+          style: const TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+            color: AppColors.ink,
+          ),
+        ),
+      ),
+      const SizedBox(height: 3),
+      Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 11, color: AppColors.muted),
+      ),
+    ],
+  );
+}
+
+class _EnergyArcPainter extends CustomPainter {
+  const _EnergyArcPainter({required this.progress});
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(9, 9, size.width - 18, size.height - 18);
+    const start = math.pi * 0.75;
+    const sweep = math.pi * 1.5;
+    final track = Paint()
+      ..color = AppColors.pale
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 11
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, start, sweep, false, track);
+    if (progress <= 0) return;
+    final fill = Paint()
+      ..color = AppColors.green
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 11
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, start, sweep * progress, false, fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant _EnergyArcPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
 class _Macro extends StatelessWidget {
-  const _Macro(this.label, this.value, this.target, this.color);
+  const _Macro(this.label, this.value, this.target);
   final String label;
   final double value;
   final double target;
-  final Color color;
   @override
   Widget build(BuildContext context) => Expanded(
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Text(
-                '${(HealthCalculations.progress(value, target) * 100).round()}%',
-                style: const TextStyle(fontSize: 10),
-              ),
-            ],
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppColors.ink),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           LinearProgressIndicator(
             value: HealthCalculations.progress(value, target),
-            color: color,
-            backgroundColor: const Color(0xFFDDE5EE),
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(6),
+            color: AppColors.green,
+            backgroundColor: AppColors.pale,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             '${value.round()} / ${target.round()} г',
-            style: const TextStyle(fontSize: 10),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
           ),
         ],
       ),

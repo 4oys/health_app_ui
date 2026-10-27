@@ -12,8 +12,13 @@ class HealthCalculations {
       : 'Ожирение';
   static double progress(num value, num target) =>
       target <= 0 ? 0 : (value / target).clamp(0, 1).toDouble();
-  static int remainingCalories(int target, Iterable<FoodEntry> entries) =>
-      target -
+  static int remainingCalories(
+    int target,
+    Iterable<FoodEntry> entries, {
+    int burnedCalories = 0,
+  }) =>
+      target +
+      burnedCalories -
       entries.fold<double>(0, (sum, entry) => sum + entry.kcal).round();
   static double totalProtein(Iterable<FoodEntry> entries) =>
       entries.fold(0, (sum, entry) => sum + entry.protein);
